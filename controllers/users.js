@@ -17,13 +17,11 @@ module.exports.getUsers = (req, res, next) => {
 
 module.exports.createUser = (req, res, next) => {
   const {
-    name, about, avatar, email, password,
+    name, email, password,
   } = req.body;
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name,
-      about,
-      avatar,
       email,
       password: hash,
     }))
@@ -31,7 +29,7 @@ module.exports.createUser = (req, res, next) => {
       res.status(CREATED).send(
         {
           data: {
-            name, about, avatar, email,
+            name, email,
           },
         },
       );
@@ -72,9 +70,9 @@ module.exports.getUserById = (req, res, next) => {
     });
 };
 
-module.exports.updateUser = (req, res, next) => {
-  const { name, about } = req.body.data;
-  User.findByIdAndUpdate(req.user._id, { name, about }, {
+module.exports.updateUser = (req, res, updateData, next) => {
+  const userId = req.user._id;
+  User.findByIdAndUpdate(req.user._id, { userId, updateData }, {
     new: true,
     runValidators: true,
   })
@@ -84,13 +82,8 @@ module.exports.updateUser = (req, res, next) => {
       }
       res.status(OK).send({ user });
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequest(validationError));
-      } else {
-        next(err);
-      }
-    });
+    .then((user) => this.checkUser(user, res))
+    .catch(next);
 };
 
 module.exports.login = (req, res, next) => {

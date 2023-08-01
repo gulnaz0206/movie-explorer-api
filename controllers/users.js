@@ -70,9 +70,9 @@ module.exports.getUserById = (req, res, next) => {
     });
 };
 
-module.exports.updateUser = (req, res, updateData, next) => {
-  const userId = req.user._id;
-  User.findByIdAndUpdate(req.user._id, { userId, updateData }, {
+module.exports.updateUser = (req, res, next) => {
+  const { name, email } = req.body.data;
+  User.findByIdAndUpdate(req.user._id, { name, email }, {
     new: true,
     runValidators: true,
   })
@@ -82,8 +82,15 @@ module.exports.updateUser = (req, res, updateData, next) => {
       }
       res.status(OK).send({ user });
     })
-    .then((user) => this.checkUser(user, res))
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequest(`Ошибка валидации: ${err.message}`));
+      } if (err.code === 11000) {
+        next(new Conflict(UserAlreadyExist));
+      } else {
+        next(err);
+      }
+    });
 };
 
 module.exports.login = (req, res, next) => {

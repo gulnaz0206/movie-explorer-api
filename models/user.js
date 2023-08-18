@@ -26,16 +26,16 @@ const userSchema = new mongoose.Schema({
   },
 }, { toJSON: { useProtection: true }, toObject: { useProtection: true }, versionKey: false });
 
-userSchema.statics.findUserByCredentials = function findUserByCredentials(email, password) {
+userSchema.statics.findUserByCredentials = function findUserByCredentials (email, password) {
   return this.findOne({ email }).select('+password')
     .then((user) => {
-      if (!user) {
-        throw Unauthorized('Неправильно введены почта или пароль');
+      if (user === null) {
+        throw new Unauthorized('Неправильно введены почта или пароль');
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            throw Unauthorized('Неправильно введены почта или пароль');
+            throw new Unauthorized('Неправильно введены почта или пароль');
           }
           return user;
         });
@@ -43,7 +43,7 @@ userSchema.statics.findUserByCredentials = function findUserByCredentials(email,
 };
 
 userSchema.set('toJSON', {
-  transform(doc, res) {
+  transform (doc, res) {
     delete res.password;
     return res;
   },

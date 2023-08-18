@@ -26,13 +26,7 @@ module.exports.createUser = (req, res, next) => {
       password: hash,
     }))
     .then(() => {
-      res.status(CREATED).send(
-        {
-          data: {
-            name, email,
-          },
-        },
-      );
+      res.status(CREATED).send({ name, email });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -47,7 +41,7 @@ module.exports.createUser = (req, res, next) => {
 
 module.exports.checkUser = (user, res, next) => {
   if (user) {
-    return res.send({ data: user });
+    return res.send(user);
   }
   const error = new NotFound(NotFoundUser);
   return next(error);
@@ -99,8 +93,18 @@ module.exports.login = (req, res, next) => {
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
-      res.setHeader('Set-Cookie', `${token}`);
-      res.send(user);
+      res.cookie('jwt', token, {
+        // path: '/',
+        // такая кука будет храниться 7 дней
+        maxAge: 3600000 * 24 * 7,
+        httpOnly: true,
+        // защита от автоматической отправки кук
+        // указать браузеру, чтобы тот посылал куки, только если запрос сделан с того же домена
+        // sameSite: 'none',
+        // secure: true,
+      });
+      const { name, email } = user;
+      res.send({ name, email });
       req.body.user = user;
     })
     .catch(next);
@@ -112,7 +116,18 @@ module.exports.getUserInfo = (req, res, next) => {
       if (!user) {
         throw new NotFound(NotFoundUser);
       }
-      res.status(OK).send({ user });
+      res.status(OK).send(user);
     })
     .catch(next);
+};
+module.exports.logout = (req, res, next) => {
+  try {
+    res.clearCookie('jwt', {
+      path: '/',
+      sameSite: 'none',
+      secure: true,
+    }).send({ message: 'Вы вышли!' });
+  } catch (err) {
+    next(err);
+  }
 };

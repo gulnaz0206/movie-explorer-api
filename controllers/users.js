@@ -25,7 +25,19 @@ module.exports.createUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then(() => {
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+      res.cookie('jwt', token, {
+        // path: '/',
+        // такая кука будет храниться 7 дней
+        maxAge: 3600000 * 24 * 7,
+        httpOnly: true,
+        // защита от автоматической отправки кук
+        // указать браузеру, чтобы тот посылал куки, только если запрос сделан с того же домена
+        sameSite: 'none',
+        secure: true,
+      });
+
       res.status(CREATED).send({ name, email });
     })
     .catch((err) => {
@@ -65,7 +77,7 @@ module.exports.getUserById = (req, res, next) => {
 };
 
 module.exports.updateUser = (req, res, next) => {
-  const { name, email } = req.body.data;
+  const { name, email } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, email }, {
     new: true,
     runValidators: true,
@@ -74,7 +86,7 @@ module.exports.updateUser = (req, res, next) => {
       if (!user) {
         throw new NotFound(NotFoundUser);
       }
-      res.status(OK).send({ user });
+      res.status(OK).send(user);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -100,8 +112,8 @@ module.exports.login = (req, res, next) => {
         httpOnly: true,
         // защита от автоматической отправки кук
         // указать браузеру, чтобы тот посылал куки, только если запрос сделан с того же домена
-        // sameSite: 'none',
-        // secure: true,
+        sameSite: 'none',
+        secure: true,
       });
       const { name, email } = user;
       res.send({ name, email });

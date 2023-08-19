@@ -12,7 +12,7 @@ const {
 
 module.exports.getUsersMovies = (req, res, next) => {
   Movie.find({ owner: req.user._id })
-    .then((movie) => res.status(200).send({ data: movie }))
+    .then((movies) => res.status(200).send(movies))
     .catch(next);
 };
 
@@ -45,7 +45,7 @@ module.exports.createMovie = (req, res, next) => {
     nameEN,
     owner,
   })
-    .then((movie) => res.status(201).send({ movie }))
+    .then((movie) => res.status(201).send(movie))
     .catch((err) => {
       if (err.name === 'ValidationError') {
         next(new BadRequest(validationError));
@@ -63,8 +63,8 @@ module.exports.deletedMovie = (req, res, next) => {
       if (movie.owner.toString() !== req.user._id.toString()) {
         throw new Forbidden(canNotDelete);
       }
-      return movie.remove()
-        .then(() => res.status(200).send({ message: deletedMovie }));
+      return movie.deleteOne()
+        .then((deletedMovie) => res.status(200).send(deletedMovie));
     })
     .catch(next);
 };
